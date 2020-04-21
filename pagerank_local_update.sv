@@ -1,6 +1,6 @@
 /******************************************************************************
 Module that sums page-ranks and accumilates for the destination id for each
-individual partition.
+individual partition in each thread.
 
 Authors:
     Kevin Rohan (krohan@andrew.cmu.edu)
@@ -39,7 +39,7 @@ OUTPUT FORMAT:
         gather operation has been completed.
 
 *******************************************************************************/
-module pagerank_gather
+module pagerank_local_update
     #(
         parameter int NODES_IN_GRAPH = 32;
     )
