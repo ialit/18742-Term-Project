@@ -50,8 +50,8 @@ OUTPUT FORMAT:
 *******************************************************************************/
 module pagerank_scatter 
     #(
-        parameter int NODES_IN_PARTITION = 4;
-        parameter int MAX_OUT_DEGREE = 20;
+        parameter int NODES_IN_PARTITION = 4,
+        parameter int MAX_OUT_DEGREE = 20
     )
 (
     //Circuit inputs
@@ -62,8 +62,8 @@ module pagerank_scatter
     //Graph Inputs
     input logic [31:0] source_id [NODES_IN_PARTITION],
     input logic [31:0] out_degree [NODES_IN_PARTITION],
-    input logic [31:0] dest_id [NODES_IN_PARTITION][MAX_DEGREE],
-    input logic [63:0] page_rank_old [NODES_IN_PARTITION]
+    input logic [31:0] dest_id [NODES_IN_PARTITION][MAX_OUT_DEGREE],
+    input logic [63:0] page_rank_old [NODES_IN_PARTITION],
 
     //Output
     output logic [63:0] pagerank_scatter,
@@ -139,10 +139,13 @@ endmodule
 
 module counter32_bit 
     (
-        input clock, input reset_n, input enable, input clear,
+        input clock, 
+        input reset_n, 
+        input enable, 
+        input clear,
 
         output logic [31:0] count_val
-    )
+    );
 
     logic [31:0] counter;
 

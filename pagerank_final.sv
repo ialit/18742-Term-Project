@@ -36,10 +36,10 @@ OUTPUT FORMAT:
         (Damping - Undamped) - determines the convergences criteria
 
 *******************************************************************************/
-module DMP_serial
+module DMP_serial_final
     #(
-        parameter int NUM_HW_THREADS = 8;
-        parameter int NODES_IN_GRAPH = 32;
+        parameter int NUM_HW_THREADS = 8,
+        parameter int NODES_IN_GRAPH = 32
     )
 (
     //Circuit inputs
@@ -67,10 +67,11 @@ module DMP_serial
     logic next_thread;
     logic [31:0] pagerank_intermediate;
 
-    counter32_bit thread_counter (.clock(clock), .reset_n(reset_n), .enable(next_thread), .count_val(thread_id));
+    counter32_bit_final thread_counter (.clock(clock), .reset_n(reset_n), .enable(next_thread), .count_val(thread_id));
 
-    function logic[63:0] float_absolute (logic [63:0] ip_val) 
-        float_absolute = (((shortreal)ip_val)<1)?(-((shortreal)ip_val)):ip_val;
+    function logic[63:0] float_absolute (logic [63:0] ip_val);
+        //float_absolute = 64'd420;             //NOT sure what this was for 
+        float_absolute = ((ip_val[64] == 1) ? (-ip_val) : ip_val);
     endfunction
 
     always_comb begin
@@ -99,7 +100,7 @@ module DMP_serial
 
     always_ff @(posedge clock, negedge reset_n) begin
         if (~reset_n) begin
-            currentState <= WAIT_FOR_THREADS;
+            currentState <= WAIT_FOR_READY;
         end 
         else begin
             currentState <= nextState;
@@ -111,7 +112,7 @@ module DMP_serial
             for (int i=0; i<NODES_IN_GRAPH; i++) begin
                 pagerank_intermediate [i] <= 0;
             end
-            delta
+            delta <= 64'd0;
         end
         if (currentState == ACCUMILATE_SUM) begin
             for (int i=0; i<NODES_IN_GRAPH; i++) begin
@@ -120,23 +121,25 @@ module DMP_serial
         end
         else if (currentState == DAMP) begin
             for (int i=0; i<NODES_IN_GRAPH; i++) begin
-                pagerank_final[i] <= (1-damping_factor)/(NODES_IN_GRAPH) + (damping_factor)(pagerank_intermediate[i]);
+                pagerank_final[i] <= (1-damping_factor)/(NODES_IN_GRAPH) + (damping_factor)*(pagerank_intermediate[i]);
             end
         end
         else if (currentState == DELTA) begin
             for (int i=0; i<NODES_IN_GRAPH; i++) begin
-                delta <= delta + (float_absolute(pagerank_final[i] - pagerank_intermediate[i]))
+                delta <= delta + (float_absolute(pagerank_final[i] - pagerank_intermediate[i]));
             end
         end
     end
 endmodule
 
-module counter32_bit 
-    (
-        input clock, input reset_n, input enable,
+module counter32_bit_final
+(
+    input logic clock,
+    input logic reset_n,
+    input logic enable,
 
-        output logic [31:0] count_val
-    )
+    output logic [31:0] count_val
+);
 
     logic [31:0] counter;
 

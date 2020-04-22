@@ -44,8 +44,8 @@ OUTPUT FORMAT:
 *******************************************************************************/
 module DMP_serial
     #(
-        parameter int NUM_HW_THREADS = 8;
-        parameter int NODES_IN_GRAPH = 32;
+        parameter int NUM_HW_THREADS = 8,
+        parameter int NODES_IN_GRAPH = 32
     )
 (
     //Circuit inputs
@@ -59,7 +59,7 @@ module DMP_serial
     //Output
     output logic [63:0] pagerank_serial_stream [NODES_IN_GRAPH],
     output logic stream_start,
-    output logic stream_done,
+    output logic stream_done
 );
 
     typedef enum logic[1:0] {WAIT_FOR_THREADS, SEND, END} states_t;
@@ -112,11 +112,13 @@ module DMP_serial
 endmodule
 
 module counter32_bit 
-    (
-        input clock, input reset_n, input enable,
+(
+    input logic clock,
+    input logic reset_n,
+    input logic enable,
 
-        output logic [31:0] count_val
-    )
+    output logic [31:0] count_val
+);
 
     logic [31:0] counter;
 
