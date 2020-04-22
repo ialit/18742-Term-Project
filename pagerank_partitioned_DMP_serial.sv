@@ -1,7 +1,7 @@
 /******************************************************************************
-Module to compute page-rank scatter phase of a partition of a graph. It involes
-sending the value of pagerank_old[parent-node]/outdegree[parent-node] for
-corresponding child node id.
+Root module for implementing the entire sequence of partitioned based page
+rank algorithm. The implementation of the RTL is according to that of shown 
+in the figure in the repository - DMP serial pagerank
 
 Authors:
     Kevin Rohan (krohan@andrew.cmu.edu)
@@ -10,15 +10,17 @@ Authors:
 
 - Use Parameter to set the following 2 parameters
 
-    a. NODES_IN_PARTITION - 
-        The number of nodes in the graph partition
-    b. MAX_OUT_DEGREE - 
-        This part is used to indictate the maximum out degree.
-        This is used to set the stream size for the destination stream
+    a. NUM_HW_THREADS - 
+        The total number of partitions in the graph
+
+    b. NODES_IN_GRAPH - 
+        The total number of nodes in the graph
 
 INPUT FORMAT:
 
     clock and reset_n : for functioning of the circuit
+
+    
 
     The graph partition is inputed by:
         source_id[NODES_IN_PARTITION] | out_degree[NODES_IN_PARTITION] | dest_id[NODES_IN_PARTITION][MAX_DEGREE]
@@ -74,10 +76,9 @@ module pagerank_scatter
     logic [63:0] page_rank_init [NODES_IN_PARTITION];
     logic [31:0] i,j;
     logic outer_loop_enable, inner_loop_enable;
-    logic inner_loop_clear, outer_loop_clear;
 
-    counter32_bit source_id_counter (.clock(clock), .reset_n(reset_n), .enable(outer_loop_enable), .clear(inner_loop_clear), .count_val(i));
-    counter32_bit dest_id_counter (.clock(clock), .reset_n(reset_n), .enable(inner_loop_enable), .clear(outer_loop_clear), .count_val(j));
+    counter32_bit source_id_counter (.clock(clock), .reset_n(reset_n), .enable(outer_loop_enable), .count_val(i));
+    counter32_bit dest_id_counter (.clock(clock), .reset_n(reset_n), .enable(inner_loop_enable), .count_val(j));
 
     typedef enum logic [2:0] {START, SCAN_LINK, QUEUE, INC, END} states_t;
 
@@ -91,8 +92,6 @@ module pagerank_scatter
         operation_complete = 0;
         outer_loop_enable = 0;
         inner_loop_enable = 0;
-        outer_loop_clear = 0;
-        inner_loop_clear = 0;
         unique case (currentState)
             START: begin
                 nextState = (pagerank_enable)?SCAN_LINK:START;
@@ -101,7 +100,7 @@ module pagerank_scatter
                 nextState = (i < NODES_IN_PARTITION) ? QUEUE : END;
             end
             QUEUE: begin
-                if (j < out_degree[i])
+                if ((dest_id[i][j] >= MAX_DEGREE) || (dest_id[i][j] < 0))
                     nextState = INC;
                 else begin
                     pagerank_scatter = page_rank_init[dest_id[i][j]] / out_degree[dest_id[i][j]];
@@ -112,7 +111,6 @@ module pagerank_scatter
             end
             INC: begin
                 outer_loop_enable = 1;
-                inner_loop_clear = 1;
                 nextState = SCAN_LINK;
             end
             END: begin
@@ -139,7 +137,7 @@ endmodule
 
 module counter32_bit 
     (
-        input clock, input reset_n, input enable, input clear,
+        input clock, input reset_n, input enable,
 
         output logic [31:0] count_val
     )
@@ -150,8 +148,6 @@ module counter32_bit
 
     always_ff @(posedge clock, negedge reset_n) begin
         if (~reset_n)
-            counter <=0;
-        else if (clear)
             counter <=0;
         else if (~enable)
             counter <= counter;
