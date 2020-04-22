@@ -16,6 +16,10 @@ INPUT FORMAT:
 
     clock and reset_n : for functioning of the circuit
 
+    nextIteration : compute nextIteration of pagerank
+
+    pagerank_enable : pagerank enabled to perform operation
+
     page_rank_scatter:
         page rank from scatter phase. Received from scatter phase.
 
@@ -47,11 +51,16 @@ module pagerank_local_update
     //Circuit inputs
     input logic clock,
     input logic reset_n,
+    input logic pagerank_enable,
+
+    //Input for computation of nextIteration 
+    input logic nextIteration,
 
     //Inputs from scatter phase
     input logic [63:0] page_rank_scatter,
     input logic [31:0] dest_id,
     input logic pagerank_ready,
+    input logic scatter_operation_complete,
 
     //Output
     output logic [63:0] pagerank_pre_damp [NODES_IN_GRAPH],
@@ -62,12 +71,12 @@ module pagerank_local_update
     logic [63:0] pagerank_register [NODES_IN_GRAPH];
 
     always_ff @(posedge clock, negedge reset_n) begin
-        if (~reset_n) begin
+        if ((~reset_n) || (nextIteration)) begin
             for (int i=0; i<NODES_IN_GRAPH; i++)
                 pagerank_register[i] <= 0;
             gather_operation_complete <= 0; 
         end
-        else begin
+        else if (pagerank_enable) begin
             if (pagerank_ready) begin
                 pagerank_register[dest_id] <= pagerank_register[dest_id] + page_rank_scatter;
             end

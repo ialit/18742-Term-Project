@@ -24,6 +24,8 @@ INPUT FORMAT:
 
     clock and reset_n : for functioning of the circuit
 
+    nextIteration : compute nextIteration of pagerank
+
     page_rank_gather[PARTITIONS] :
         Pagerank of a particular destination ID from all partitions
 
@@ -52,8 +54,11 @@ module DMP_serial
     input logic clock,
     input logic reset_n,
 
+    //For next iteration
+    input logic nextIteration,
+
     //Inputs from gather phase
-    input logic [63:0] page_rank_gather[NUM_HW_THREADS][NODES_IN_GRAPH],
+    input logic [0 : NUM_HW_THREADS - 1][63 : 0] page_rank_gather[NODES_IN_GRAPH],
     input logic done[NUM_HW_THREADS],
 
     //Output
@@ -69,7 +74,7 @@ module DMP_serial
     logic [31:0] thread_id;
     logic next_thread;
 
-    counter32_bit thread_counter (.clock(clock), .reset_n(reset_n), .enable(next_thread), .count_val(thread_id));
+    counter32_bit thread_counter (.clock(clock), .reset_n(reset_n), .enable(next_thread), .count_val(thread_id), .clear(nextIteration));
 
     assign stream_start = sync;
     assign stream_done = (thread_id == NUM_HW_THREADS)?1:0;
@@ -89,7 +94,7 @@ module DMP_serial
                 nextState = (thread_id == NUM_HW_THREADS) ? END : SEND;
             end
             END: begin
-                nextState = END;
+                nextState = (nextIteration) ? WAIT_FOR_THREADS : END;
             end
         endcase
     end
@@ -97,13 +102,12 @@ module DMP_serial
     //Threads ready check
     always_comb begin
         for (int i=0; i<NUM_HW_THREADS; i++)
-            sync=sync_r & 1'b1;
+            sync=done[i]& 1'b1;
     end
 
     always_ff @(posedge clock, negedge reset_n) begin
         if (~reset_n) begin
             currentState <= WAIT_FOR_THREADS;
-            sync_r <= 1'b1;
         end 
         else begin
             currentState <= nextState;
@@ -116,6 +120,7 @@ module counter32_bit
     input logic clock,
     input logic reset_n,
     input logic enable,
+    input logic clear,
 
     output logic [31:0] count_val
 );
@@ -125,7 +130,7 @@ module counter32_bit
     assign count_val = counter;
 
     always_ff @(posedge clock, negedge reset_n) begin
-        if (~reset_n)
+        if ((~reset_n) || (clear))
             counter <=0;
         else if (~enable)
             counter <= counter;

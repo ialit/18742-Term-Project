@@ -20,6 +20,10 @@ INPUT FORMAT:
 
     clock and reset_n : for functioning of the circuit
 
+    pagerank_enable : pagerank enabled to perform operation
+
+    nextIteration : compute nextIteration of pagerank
+
     The graph partition is inputed by:
         source_id[NODES_IN_PARTITION] | out_degree[NODES_IN_PARTITION] | dest_id[NODES_IN_PARTITION][MAX_DEGREE]
 
@@ -51,7 +55,8 @@ OUTPUT FORMAT:
 module pagerank_scatter 
     #(
         parameter int NODES_IN_PARTITION = 4,
-        parameter int MAX_OUT_DEGREE = 20
+        parameter int STREAM_SIZE = 20,
+        parameter int NODES_IN_GRAPH = 32
     )
 (
     //Circuit inputs
@@ -59,10 +64,13 @@ module pagerank_scatter
     input logic reset_n,
     input logic pagerank_enable,
 
+    //For new iteration of pagerank
+    input logic nexttIteration
+
     //Graph Inputs
     input logic [31:0] source_id [NODES_IN_PARTITION],
     input logic [31:0] out_degree [NODES_IN_PARTITION],
-    input logic [31:0] dest_id [NODES_IN_PARTITION][MAX_OUT_DEGREE],
+    input logic [31:0] dest_id [NODES_IN_PARTITION][STREAM_SIZE],
     input logic [63:0] page_rank_old [NODES_IN_PARTITION],
 
     //Output
@@ -71,7 +79,7 @@ module pagerank_scatter
     output logic output_ready,
     output logic operation_complete 
 );
-    logic [63:0] page_rank_init [NODES_IN_PARTITION];
+    logic [63:0] page_rank_init [NODES_IN_GRAPH];
     logic [31:0] i,j;
     logic outer_loop_enable, inner_loop_enable;
     logic inner_loop_clear, outer_loop_clear;
@@ -116,7 +124,8 @@ module pagerank_scatter
                 nextState = SCAN_LINK;
             end
             END: begin
-                nextState = END;
+                nextState = (nexttIteration) ? START : END;
+                outer_loop_clear = 1;
                 operation_complete = 1;
             end
 
@@ -131,7 +140,7 @@ module pagerank_scatter
                 page_rank_init[k] <= page_rank_old[k];
             end
         end
-        else begin
+        else if (pagerank_enable) begin
             currentState <= nextState;
         end
     end
