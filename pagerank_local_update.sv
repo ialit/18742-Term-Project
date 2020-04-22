@@ -41,7 +41,7 @@ OUTPUT FORMAT:
 *******************************************************************************/
 module pagerank_local_update
     #(
-        parameter int NODES_IN_GRAPH = 32;
+        parameter int NODES_IN_GRAPH = 32
     )
 (
     //Circuit inputs
@@ -71,7 +71,7 @@ module pagerank_local_update
             if (pagerank_ready) begin
                 pagerank_register[dest_id] <= pagerank_register[dest_id] + page_rank_scatter;
             end
-            if (scatter_operation_complete)
+            if (scatter_operation_complete) // Not sure what this is supposed to be
                 gather_operation_complete <= 1;
         end
     end

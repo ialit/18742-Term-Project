@@ -50,8 +50,8 @@ OUTPUT FORMAT:
 *******************************************************************************/
 module pagerank_scatter 
     #(
-        parameter int NODES_IN_PARTITION = 4;
-        parameter int MAX_OUT_DEGREE = 20;
+        parameter int NODES_IN_PARTITION = 4,
+        parameter int MAX_OUT_DEGREE = 20
     )
 (
     //Circuit inputs
@@ -62,8 +62,8 @@ module pagerank_scatter
     //Graph Inputs
     input logic [31:0] source_id [NODES_IN_PARTITION],
     input logic [31:0] out_degree [NODES_IN_PARTITION],
-    input logic [31:0] dest_id [NODES_IN_PARTITION][MAX_DEGREE],
-    input logic [63:0] page_rank_old [NODES_IN_PARTITION]
+    input logic [31:0] dest_id [NODES_IN_PARTITION][MAX_OUT_DEGREE],
+    input logic [63:0] page_rank_old [NODES_IN_PARTITION],
 
     //Output
     output logic [63:0] pagerank_scatter,
@@ -75,8 +75,8 @@ module pagerank_scatter
     logic [31:0] i,j;
     logic outer_loop_enable, inner_loop_enable;
 
-    counter32_bit source_id_counter (.clock(clock), .reset_n(reset_n), .enable(outer_loop_enable), .count_val(i));
-    counter32_bit dest_id_counter (.clock(clock), .reset_n(reset_n), .enable(inner_loop_enable), .count_val(j));
+    counter32_bit_scatter source_id_counter (.clock(clock), .reset_n(reset_n), .enable(outer_loop_enable), .count_val(i));
+    counter32_bit_scatter dest_id_counter (.clock(clock), .reset_n(reset_n), .enable(inner_loop_enable), .count_val(j));
 
     typedef enum logic [2:0] {START, SCAN_LINK, QUEUE, INC, END} states_t;
 
@@ -98,7 +98,7 @@ module pagerank_scatter
                 nextState = (i < NODES_IN_PARTITION) ? QUEUE : END;
             end
             QUEUE: begin
-                if ((dest_id[i][j] >= MAX_DEGREE) || (dest_id[i][j] < 0))
+                if ((dest_id[i][j] >= MAX_OUT_DEGREE) || (dest_id[i][j] < 0))
                     nextState = INC;
                 else begin
                     pagerank_scatter = page_rank_init[dest_id[i][j]] / out_degree[dest_id[i][j]];
@@ -133,12 +133,14 @@ module pagerank_scatter
     end
 endmodule
 
-module counter32_bit 
-    (
-        input clock, input reset_n, input enable,
+module counter32_bit_scatter
+(
+    input logic clock,
+    input logic reset_n,
+    input logic enable,
 
-        output logic [31:0] count_val
-    )
+    output logic [31:0] count_val
+);
 
     logic [31:0] counter;
 
