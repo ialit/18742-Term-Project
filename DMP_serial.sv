@@ -58,7 +58,7 @@ module DMP_serial
     input logic nextIteration,
 
     //Inputs from gather phase
-    input logic [0 : NUM_HW_THREADS - 1][63 : 0] page_rank_gather[NODES_IN_GRAPH],
+    input logic [63 : 0] page_rank_gather[NUM_HW_THREADS][NODES_IN_GRAPH],
     input logic done[NUM_HW_THREADS],
 
     //Output
@@ -77,21 +77,27 @@ module DMP_serial
     counter32_bit thread_counter (.clock(clock), .reset_n(reset_n), .enable(next_thread), .count_val(thread_id), .clear(nextIteration));
 
     assign stream_start = sync;
-    assign stream_done = (thread_id == NUM_HW_THREADS)?1:0;
+    assign stream_done = (thread_id == NUM_HW_THREADS)? 1'b1 : 1'b0;
 
     always_comb begin
-        pagerank_serial_stream = 0;
+        for(int i=0; i<NODES_IN_GRAPH; i++)
+            pagerank_serial_stream[i] = 0;
         next_thread = 0;
         unique case(currentState) 
             WAIT_FOR_THREADS: begin
                 nextState = (sync) ? SEND : WAIT_FOR_THREADS;
             end
             SEND: begin
-                for(int i=0; i<NODES_IN_GRAPH; i++) begin
-                    pagerank_serial_stream[i] = page_rank_gather[thread_id][i];
+                if (thread_id == NUM_HW_THREADS) begin
+                    nextState = END;
                 end
-                next_thread = 1;
-                nextState = (thread_id == NUM_HW_THREADS) ? END : SEND;
+                else begin
+                    for(int i=0; i<NODES_IN_GRAPH; i++) begin
+                        pagerank_serial_stream[i] = page_rank_gather[thread_id][i];
+                    end
+                    next_thread = 1;
+                    nextState = SEND;
+                end
             end
             END: begin
                 nextState = (nextIteration) ? WAIT_FOR_THREADS : END;
