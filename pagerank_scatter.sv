@@ -113,7 +113,7 @@ module pagerank_scatter
               if (j >= out_degree[i])
                     nextState = INC;
                 else begin
-                    pagerank_scatter_op = page_rank_init[dest_id[i][j]] / out_degree[dest_id[i][j]];
+                    pagerank_scatter_op = page_rank_init[source_id[i]] / out_degree[source_id[i]]; //Need to figure out how to do it
                     node_id = dest_id[i][j];
                     output_ready = 1;
                     inner_loop_enable = 1;
