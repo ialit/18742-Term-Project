@@ -110,13 +110,14 @@ module pagerank_scatter
                 nextState = (i < NODES_IN_PARTITION) ? QUEUE : END;
             end
             QUEUE: begin
-                if (j >= out_degree[i])
+              if (j >= out_degree[i])
                     nextState = INC;
                 else begin
                     pagerank_scatter_op = page_rank_init[dest_id[i][j]] / out_degree[dest_id[i][j]];
                     node_id = dest_id[i][j];
                     output_ready = 1;
                     inner_loop_enable = 1;
+                    nextState = QUEUE;
                 end
             end
             INC: begin
