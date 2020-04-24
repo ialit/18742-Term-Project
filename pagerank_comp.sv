@@ -18,8 +18,8 @@ INPUT FORMAT:
     stream_start:
         Start of stream
 
-    stream_end:
-        End of stream
+    stream_done:
+        DMP serial finished sending the packets
 
     damping_factor:
         The damping factor for computing page rank
@@ -70,14 +70,11 @@ module pagerank_comp
     typedef enum logic[2:0] {WAIT_FOR_READY, ACCUMILATE_SUM, DAMP, DELTA, END} states_t;
 
     states_t currentState, nextState;
-    logic [31:0] thread_id;
-    logic next_thread;
-    logic [31:0] pagerank_intermediate;
+    logic [63:0] pagerank_intermediate[NODES_IN_GRAPH];
     logic [63:0] delta;
-    logic thread_clear;
     logic [31:0] iteration_count;
+  	logic next_itr;
 
-    counter32_bit_final thread_counter (.clock(clock), .reset_n(reset_n), .enable(next_thread), .count_val(thread_id), .clear(thread_clear));
     counter32_bit_final iteration_counter (.clock(clock), .reset_n(reset_n), .enable(next_itr), .count_val(iteration_count), .clear(1'b0));
 
     assign nextIteration = next_itr;
@@ -85,21 +82,17 @@ module pagerank_comp
     
     function logic[63:0] float_absolute (logic [63:0] ip_val);
         //float_absolute = 64'd420;             //NOT sure what this was for 
-        float_absolute = ((ip_val[64] == 1) ? (-ip_val) : ip_val);
+        float_absolute = ((ip_val[63] == 1) ? (-ip_val) : ip_val);
     endfunction
 
     always_comb begin
-        next_thread = 0;
-        pagerank_iteration_complete = 0;
-        thread_clear = 0;
         next_itr = 0;
         unique case(currentState) 
             WAIT_FOR_READY: begin
                 nextState = (stream_start) ? ACCUMILATE_SUM : WAIT_FOR_READY;
             end
             ACCUMILATE_SUM: begin
-                next_thread = 1;
-                nextState = (thread_id == NODES_IN_GRAPH) ? DAMP : ACCUMILATE_SUM;
+                nextState = (stream_done) ? DAMP : ACCUMILATE_SUM;
             end
             DAMP: begin
                 nextState = DELTA;
@@ -120,28 +113,29 @@ module pagerank_comp
             currentState <= WAIT_FOR_READY;
         end 
         else begin
-            currentState <= nextState;
+            currentState <= nextState;        
         end
     end
 
-    always_ff @(posedge clock, negedge reset_n) begin
-        if (currentState == WAIT_FOR_READY) begin
+    always_ff @(posedge clock, negedge reset_n) begin      
+        if (nextState == WAIT_FOR_READY) begin
             for (int i=0; i<NODES_IN_GRAPH; i++) begin
                 pagerank_intermediate [i] <= 0;
             end
             delta <= 64'd0;
         end
-        else if (currentState == ACCUMILATE_SUM) begin
+        else if (nextState == ACCUMILATE_SUM) begin     
             for (int i=0; i<NODES_IN_GRAPH; i++) begin
                 pagerank_intermediate[i] <= pagerank_intermediate[i] + pagerank_serial_stream[i];
+              //$display("KEVIN ROHAN %d",pagerank_serial_stream[i]);
             end
         end
-        else if (currentState == DAMP) begin
+        else if (nextState == DAMP) begin
             for (int i=0; i<NODES_IN_GRAPH; i++) begin
                 pagerank_final[i] <= (1-damping_factor)/(NODES_IN_GRAPH) + (damping_factor)*(pagerank_intermediate[i]);
             end
         end
-        else if (currentState == DELTA) begin
+        else if (nextState == DELTA) begin
             for (int i=0; i<NODES_IN_GRAPH; i++) begin
                 delta <= delta + (float_absolute(pagerank_final[i] - pagerank_intermediate[i]));
             end

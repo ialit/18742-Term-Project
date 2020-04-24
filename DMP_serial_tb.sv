@@ -1,5 +1,5 @@
 /******************************************************************************
-Test bench module for pagerank scatter
+Test bench module for DMP serial
 
 Authors:
     Kevin Rohan (krohan@andrew.cmu.edu)
