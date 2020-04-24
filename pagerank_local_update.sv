@@ -69,19 +69,21 @@ module pagerank_local_update
     int i, j;
 
     logic [63:0] pagerank_register [NODES_IN_GRAPH];
-
+    
+  	assign pagerank_pre_damp = pagerank_register;
+  
     always_ff @(posedge clock, negedge reset_n) begin
         if ((~reset_n) || (nextIteration)) begin
-            for (int i=0; i<NODES_IN_GRAPH; i++)
+            for (int i=0; i<NODES_IN_GRAPH; i++) begin
                 pagerank_register[i] <= 0;
+            end
             gather_operation_complete <= 0; 
         end
         else if (pagerank_enable) begin
             if (pagerank_ready) begin
                 pagerank_register[dest_id] <= pagerank_register[dest_id] + page_rank_scatter;
             end
-            if (scatter_operation_complete) // Not sure what this is supposed to be
-                gather_operation_complete <= 1;
+            gather_operation_complete <= scatter_operation_complete;
         end
     end
 endmodule

@@ -1,4 +1,3 @@
-// Code your design here
 /******************************************************************************
 Module to compute page-rank scatter phase of a partition of a graph. It involes
 sending the value of pagerank_old[parent-node]/outdegree[parent-node] for

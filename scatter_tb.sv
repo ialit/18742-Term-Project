@@ -1,5 +1,3 @@
-// Code your testbench here
-// or browse Examples
 /******************************************************************************
 Test bench module for pagerank scatter
 
@@ -70,6 +68,8 @@ module scatter_tb
         repeat(50) begin
              @(posedge clock);
         $display("CurrentState = %s", test_scatter.currentState.name());
+        if(test_scatter.currentState.name() == "QUEUE")
+          $display("PR = %f, node = %d, output ready = %d, source id = %d",pagerank_scatter_op,node_id,output_ready, test_scatter.source_id[test_scatter.i]);
         end
      
 		$finish;
