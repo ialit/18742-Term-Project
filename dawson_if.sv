@@ -66,10 +66,11 @@ module dawson_if (
     typedef enum logic [2:0] {
         RESET,
         IDLE,
-        WAIT_TX,
+        TX_A,
+        TX_B,
         WAIT_RX,
-        RECEIVE,
-        RX_USER
+        RX,
+        USER_RX
     } state_t;
 
     state_t state;
@@ -86,12 +87,12 @@ module dawson_if (
             state <= RESET;
         end
         else begin
-            if (state == IDLE && ready_in) begin
+            if (state == IDLE && nextState == TX_A) begin
                 a_saved <= a;
                 b_saved <= b;
             end
 
-            if (state == RECEIVE && output_z_stb) begin
+            if (state == RX && nextState == USER_RX) begin
                 out_saved <= output_z;
             end
 
@@ -121,28 +122,33 @@ module dawson_if (
             end
             IDLE: begin
                 if (ready_in) begin
-                    nextState = WAIT_TX;
+                    nextState = TX_A;
                 end
             end
-            WAIT_TX: begin
+            TX_A: begin
                 input_a = a_saved;
-                input_b = b_saved;
                 input_a_stb = 1;
+                if (input_a_ack) begin
+                    nextState = TX_B;
+                end
+            end
+            TX_B: begin
+                input_b = b_saved;
                 input_b_stb = 1;
-                if (input_a_ack & input_b_ack) begin
+                if (input_b_ack) begin
                     nextState = WAIT_RX;
                 end
             end
             WAIT_RX: begin
                 if (output_z_stb) begin
-                    nextState = RECEIVE;
+                    nextState = RX;
                 end
             end
-            RECEIVE: begin
+            RX: begin
                 output_z_ack = 1;
-                nextState = RX_USER;
+                nextState = USER_RX;
             end
-            RX_USER: begin
+            USER_RX: begin
                 out = out_saved;
                 ready_out = 1;
                 nextState = IDLE;

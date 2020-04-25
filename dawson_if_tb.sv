@@ -47,63 +47,81 @@ module dawson_if_tb();
         input_b_ack = 0;
 
                                                     // Start in RESET
-        @(posedge clock); assert(clk == clock);     // IDLE after this clock
-        @(posedge clock); assert(clk == clock);     // IDLE after this clock
+        @(posedge clock); #1 assert(clk == clock);  // RESET -> IDLE
+        @(posedge clock); #1 assert(clk == clock);  // IDLE -> IDLE
 
         a = 64'd1;
         b = 64'd2;
 
-        @(posedge clock);   // still in IDLE
+        @(posedge clock);   // IDLE -> IDLE
         
         ready_in = 1;
         
-        @(posedge clock);   // WAIT_TX after this clock
+        @(posedge clock);   // IDLE -> TX_A
+        
+        ready_in = 0;
 
+        #1
         assert(input_a == a);
-        assert(input_b == b);
         assert(input_a_stb);
-        assert(input_b_stb);
         assert(~output_z_ack);
 
-        @(posedge clock);   // still in WAIT_TX
-
-        assert(input_a == a);
-        assert(input_b == b);
-        assert(input_a_stb);
-        assert(input_b_stb);
-        assert(~output_z_ack);
-
+        @(posedge clock);   // TX_A -> TX_A
+        
         input_a_ack = 1;
-        input_b_ack = 1;
-
-        @(posedge clock);   // WAIT_RX after this clock
-
-        assert(~input_a_stb);
+        
+        #1 
+        assert(input_a == a);
+        assert(input_a_stb);
         assert(~input_b_stb);
         assert(~output_z_ack);
 
-        @(posedge clock);   // still in WAIT_RX
-        @(posedge clock);   // still in WAIT_RX
-        @(posedge clock);   // still in WAIT_RX
+        @(posedge clock);   // TX_A -> TX_B
 
+        input_a_ack = 0;
+
+        #1
+        assert(input_b == b);
+        assert(input_b_stb);
+        assert(~input_a_stb);
         assert(~output_z_ack);
+
+        @(posedge clock);   // TX_B -> TX_B
+
+        input_b_ack = 1;
+
+        @(posedge clock);   // TX_B -> WAIT_RX
+
+        input_b_ack = 0;
+
+        @(posedge clock);   // WAIT_RX -> WAIT_RX
+        @(posedge clock);   // WAIT_RX -> WAIT_RX
+        @(posedge clock);   // WAIT_RX -> WAIT_RX
+        @(posedge clock);   // WAIT_RX -> WAIT_RX
 
         output_z = 64'd3;
         output_z_stb = 1;
 
-        @(posedge clock);   // RECEIVE after this clock
+        #1
+        assert(~output_z_ack);
 
+        @(posedge clock);   // WAIT_RX -> RX
+
+        #1
         assert(output_z_ack);
         assert(~ready_out);
 
-        @(posedge clock);   // RX_USER after this clock
+        @(posedge clock);   // RX -> USER_RX
 
+        output_z_stb = 0;
+
+        #1
         assert(~output_z_ack);
         assert(ready_out);
         assert(out == output_z);
 
-        @(posedge clock);   // IDLE after this clock
-        @(posedge clock);   // still IDLE
+        @(posedge clock);   // USER_RX -> IDLE
+        @(posedge clock);   // IDLE -> IDLE
 
         $finish;
     end
