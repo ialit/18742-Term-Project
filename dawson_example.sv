@@ -52,7 +52,7 @@ module dawson_example();
     logic [63:0] ans;
 
     dawson_if adder_if(.*); // use one interface for each Dawson unit
-    double_adder adder(.*); // replace this with a multiplier or divider as needed
+    double_adder fpu(.*); // replace this with a multiplier or divider as needed
 
     // Setup clock and reset to run this example
     initial begin
@@ -61,7 +61,10 @@ module dawson_example();
         clock = 0;
         reset_n = 0;
         reset_n <= #1 1;
-        for (int i = 0; i < 50; i++) begin
+
+        // If ready_out never gets asserted, increase
+        // number of loop iterations
+        for (int i = 0; i < 500; i++) begin
             #5 clock = ~clock;
         end
     end
