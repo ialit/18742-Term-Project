@@ -1,6 +1,6 @@
 `default_nettype none
 
-module double_adder_tb();
+module double_divider_tb();
 
     // Inputs from user
     logic        clock;
@@ -31,7 +31,7 @@ module double_adder_tb();
     logic        input_b_ack;
 
     dawson_if dut_if(.*);
-    double_adder dut(.*);
+    double_divider dut(.*);
 
     initial begin
         $monitor($time,,"a = %f, b = %f, ready_in = %b, out = %f, ready_out = %b",
@@ -61,7 +61,7 @@ module double_adder_tb();
 
         @(posedge ready_out);
 
-        #1 assert(out == 64'h401728F5C28F5C28); // 5.79
+        #1 assert(out == 64'h3FD1435E50D79436); // 0.269737
 
         @(posedge clock);
 
@@ -75,7 +75,7 @@ module double_adder_tb();
 
         @(posedge ready_out);
 
-        #1 assert(out == 64'h40C5DBF10DAE3E6C); // 11191.88323
+        #1 assert(out == 64'h3FCB66FEA2BB1FB6); // 0.214081
 
         @(posedge clock);
 
@@ -89,7 +89,7 @@ module double_adder_tb();
 
         @(posedge ready_out);
 
-        #1 assert(out == 64'h40D441F9EB851EB8); // 20743.905
+        #1 assert(out == 64'hBFFBAFA8D7379D3D); // -1.730386
 
         @(posedge clock);
         @(posedge clock);
@@ -97,4 +97,4 @@ module double_adder_tb();
         $finish;
     end
 
-endmodule: double_adder_tb
+endmodule: double_divider_tb

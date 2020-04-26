@@ -34,7 +34,7 @@ module dawson_if_tb();
         clock = 0;
         reset_n = 0;
         reset_n <= #1 1;
-        forever #5 clock = ~clk;
+        forever #5 clock = ~clock;
     end
 
     initial begin

@@ -11,8 +11,9 @@ http://dawsonjon.github.io/Chips-2.0/user_manual/interface.html
 This module should be used to interface to Dawson's floating point blocks,
 available at https://github.com/dawsonjon/fpu
 
-Provide the inputs a and b, then assert ready_in.
-Wait for the module to assert ready_out before reading the output.
+Use this module with 2 states. In the first state, provide the inputs
+a and b, and assert ready_in. In the second state, deassert ready_in
+and wait for the module to assert ready_out, then read the output immediately.
 
 INPUT FORMAT:
 
