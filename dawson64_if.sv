@@ -34,7 +34,7 @@ OUTPUT FORMAT:
 *******************************************************************************/
 
 
-module dawson_if (
+module dawson64_if (
     // Inputs from user
     input  logic        clock,
     input  logic        reset_n,
@@ -157,4 +157,4 @@ module dawson_if (
         endcase
     end
 
-endmodule: dawson_if
+endmodule: dawson64_if

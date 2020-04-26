@@ -1,4 +1,4 @@
-module dawson_if_tb();
+module dawson64_if_tb();
 
     // Inputs from user
     logic        clock;
@@ -28,7 +28,7 @@ module dawson_if_tb();
     logic        input_a_ack;
     logic        input_b_ack;
 
-    dawson_if dut(.*);
+    dawson64_if dut(.*);
 
     initial begin
         clock = 0;
@@ -126,4 +126,4 @@ module dawson_if_tb();
         $finish;
     end
 
-endmodule: dawson_if_tb
+endmodule: dawson64_if_tb

@@ -51,7 +51,7 @@ module dawson_example();
     // Register for answer
     logic [63:0] ans;
 
-    dawson_if adder_if(.*); // use one interface for each Dawson unit
+    dawson64_if adder_if(.*); // use one interface for each Dawson unit
     double_adder fpu(.*); // replace this with a multiplier or divider as needed
 
     // Setup clock and reset to run this example

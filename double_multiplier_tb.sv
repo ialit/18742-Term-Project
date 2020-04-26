@@ -30,7 +30,7 @@ module double_multiplier_tb();
     logic        input_a_ack;
     logic        input_b_ack;
 
-    dawson_if dut_if(.*);
+    dawson64_if dut_if(.*);
     double_multiplier dut(.*);
 
     initial begin
