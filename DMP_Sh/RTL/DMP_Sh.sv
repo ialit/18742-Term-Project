@@ -1,45 +1,3 @@
-/******************************************************************************
-Module that syncronizes between threads for execution in a deterministic order.
-Allows update if the thread posseses the address of the destination.
-If there is not address then executes in a serial fashion
-
-Authors:
-    Kevin Rohan (krohan@andrew.cmu.edu)
-    Eric Chen (echen2@andrew.cmu.edu)
-    Deepak Pallerla (dpallerl@andrew.cmu.edu) 
-
-- Use Parameter to set the following 2 parameters
-
-    a. NUM_HW_THREADS - 
-        Number of partitions in the garph
-
-    b. NODES_IN_GRAPH - 
-        The number of nodes in the graph partition
-
-INPUT FORMAT:
-
-    clock and reset_n : for functioning of the circuit
-
-    nextIteration : compute nextIteration of pagerank
-
-    page_rank_gather[PARTITIONS] :
-        Pagerank of a particular destination ID from all partitions
-
-    done[NUM_HW_THREADS]:
-        gather stage done for each thread
-
-OUTPUT FORMAT:
-
-    pagerank_serial_stream[NODES_IN_GRAPH]:
-        Pagerank of a thread ID
-        
-    stream_start:
-        Start of stream
-
-    stream_end:
-        End of stream
-
-*******************************************************************************/
 module DMP_Sh
     #(
         parameter int NUM_HW_THREADS = 8,
@@ -84,8 +42,10 @@ module DMP_Sh
     logic in_ready, clear_dest;
     logic [31:0] tid_for_clear;
     logic [31:0] tid_q;
+    logic [31:0] dest_in;
     real q_val;
     real queue_thread[NUM_HW_THREADS];
+    logic [31:0] dest_queue[NUM_HW_THREADS];
     logic valid[NUM_HW_THREADS];
 
     logic q_empty;
@@ -97,8 +57,10 @@ module DMP_Sh
         .clock(clock), .reset_n(reset_n),
         .in_ready(in_ready), .tid(tid_q), .val(q_val),
         .tid_for_clear(tid_for_clear), .clear_dest(clear_dest), 
+        .dest_in(dest_in),
 
         .queue_thread(queue_thread),
+        .dest_queue(dest_queue),
         .valid(valid)
     );
 
@@ -119,7 +81,7 @@ module DMP_Sh
         stall_scatter = 0;
         q_empty = 1;
         for (int i=0; i<NUM_HW_THREADS; i++) begin
-            stream_valid[tid] = 0;
+          stream_valid[i] = 0;
         end
         unique case (currentState) 
             WAIT_FOR_SCATTER: begin
@@ -131,7 +93,7 @@ module DMP_Sh
                 for (int tid=0; tid<NUM_HW_THREADS; tid++) begin
                     if (scatter_ready_reg[tid] == 1) begin
                         for (int i=0; i<num_nodes[tid]; i++) begin
-                            if (sharing_structure[tid][i] == dest_id) begin
+                          if (sharing_structure[tid][i] == node_id[tid]) begin
                                 pagerank_stream[tid] = scatter_vals[tid];
                                 dest_update[tid] = scatter_dest_ids[tid];
                                 stream_valid[tid] = 1;
@@ -139,7 +101,7 @@ module DMP_Sh
                             else begin
                                 tid_q = tid;
                                 in_ready = 1;
-                                val = scatter_vals[tid];
+                                q_val = scatter_vals[tid];
                                 dest_in = scatter_dest_ids[tid];
                             end
                         end
@@ -148,7 +110,7 @@ module DMP_Sh
             end
             SEND_QUEUE: begin
                 stall_scatter = 1;
-                nextState = (DMP_complete)?END:WAIT_FOR_THREADS;
+                nextState = (DMP_complete)?END:WAIT_FOR_SCATTER;
                 for (int i=NUM_HW_THREADS-1; i>=0 ; i++) begin
                     if (valid[i] == 1) begin
                         pagerank_stream[tid] = queue_thread[tid];
@@ -163,14 +125,14 @@ module DMP_Sh
             end
             END: begin
                 DMP_operation_complete = 1;
-                nextState = (nextIteration) ? WAIT_FOR_THREADS : END;
+                nextState = (nextIteration) ? WAIT_FOR_SCATTER : END;
             end
         endcase
     end
 
     always_ff @(posedge clock, negedge reset_n) begin
         if (~reset_n) begin
-            currentState <= WAIT_FOR_THREADS;
+            currentState <= WAIT_FOR_SCATTER;
         end 
         else begin
             currentState <= nextState;
