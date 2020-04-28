@@ -101,7 +101,7 @@ module pagerank_DMP_serial
     logic gather_operation_complete[NUM_HW_THREADS]; 
 
     //DMP serial signals
-    logic [0 : NUM_HW_THREADS - 1][63 : 0] page_rank_gather[NODES_IN_GRAPH];
+    logic [63 : 0] page_rank_gather[NUM_HW_THREADS][NODES_IN_GRAPH];
     logic [63:0] pagerank_serial_stream [NODES_IN_GRAPH];
     logic stream_start;
     logic stream_done;
@@ -109,15 +109,15 @@ module pagerank_DMP_serial
     generate
     genvar i;
         for (i=0; i<NUM_HW_THREADS; i=i+1) begin : par
-            pagearank_scatter #(NODES_IN_PARTITION, STREAM_SIZE, NODES_IN_GRAPH) scatter_threads (  .clock(clock), .reset_n(reset_n), .pagerank_enable(pagerank_enable), .nextIteration(nextIteration),
+            pagerank_scatter #(NODES_IN_PARTITION, STREAM_SIZE, NODES_IN_GRAPH) scatter_threads (  .clock(clock), .reset_n(reset_n), .pagerank_enable(pagerank_enable), .nextIteration(nextIteration),
                                                 .source_id(source_id[i]), .out_degree(out_degree[i]), .dest_id(dest_id[i]), .page_rank_old(page_rank_init),
                                                 
-                                                .pagearank_scatter(pagearank_scatter[i]), .node_id(node_id[i]), .output_ready(output_ready[i]), 
+                                                .pagerank_scatter_op(pagerank_scatter[i]), .node_id(node_id[i]), .output_ready(output_ready[i]), 
                                                 .operation_complete(operation_complete[i])
                                              );
 
-            pagearank_local_update #(NODES_IN_GRAPH) local_update_threads (  .clock(clock), .reset_n(reset_n), .pagerank_enable(pagerank_enable), .nextIteration(nextIteration),
-                                                .pagearank_scatter(pagearank_scatter[i]), .dest_id(node_id[i]), .pagerank_ready(output_ready[i]), 
+            pagerank_local_update #(NODES_IN_GRAPH) local_update_threads (  .clock(clock), .reset_n(reset_n), .pagerank_enable(pagerank_enable), .nextIteration(nextIteration),
+                                                .page_rank_scatter(pagerank_scatter[i]), .dest_id(node_id[i]), .pagerank_ready(output_ready[i]), 
                                                 .scatter_operation_complete(scatter_operation_complete[i]),
                                                 
                                                 .pagerank_pre_damp(pagerank_pre_damp[i]), .gather_operation_complete(gather_operation_complete[i])

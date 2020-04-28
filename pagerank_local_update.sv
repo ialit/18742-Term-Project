@@ -73,7 +73,13 @@ module pagerank_local_update
   	assign pagerank_pre_damp = pagerank_register;
   
     always_ff @(posedge clock, negedge reset_n) begin
-        if ((~reset_n) || (nextIteration)) begin
+        if (~reset_n) begin
+            for (int i=0; i<NODES_IN_GRAPH; i++) begin
+                pagerank_register[i] <= 0;
+            end
+            gather_operation_complete <= 0; 
+        end
+        else if(nextIteration) begin
             for (int i=0; i<NODES_IN_GRAPH; i++) begin
                 pagerank_register[i] <= 0;
             end

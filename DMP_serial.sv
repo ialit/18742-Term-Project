@@ -136,8 +136,10 @@ module counter32_bit
     assign count_val = counter;
 
     always_ff @(posedge clock, negedge reset_n) begin
-        if ((~reset_n) || (clear))
-            counter <=0;
+        if (~reset_n)
+            counter <= 'b0;
+        else if(clear)
+            counter <= 'b0;
         else if (~enable)
             counter <= counter;
         else 

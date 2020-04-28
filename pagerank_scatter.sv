@@ -147,31 +147,4 @@ module pagerank_scatter
     end
 endmodule
 
-module counter32_bit 
-    (
-        input clock, 
-        input reset_n, 
-        input enable, 
-        input clear,
-
-        output logic [31:0] count_val
-    );
-
-    logic [31:0] counter;
-
-    assign count_val = counter;
-
-    always_ff @(posedge clock, negedge reset_n) begin
-        if (~reset_n)
-            counter <=0;
-        else if (clear)
-            counter <=0;
-        else if (~enable)
-            counter <= counter;
-        else 
-            counter <= counter + 1;
-    end
-
-endmodule
-
 

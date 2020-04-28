@@ -86,19 +86,26 @@ module pagerank_comp
     endfunction
 
     always_comb begin
-        next_itr = 0;
         unique case(currentState) 
             WAIT_FOR_READY: begin
                 nextState = (stream_start) ? ACCUMILATE_SUM : WAIT_FOR_READY;
+                next_itr = 0;
+                pagerank_complete = 0;
             end
             ACCUMILATE_SUM: begin
                 nextState = (stream_done) ? DAMP : ACCUMILATE_SUM;
+                next_itr = 0;
+                pagerank_complete = 0;
             end
             DAMP: begin
                 nextState = DELTA;
+                next_itr = 0;
+                pagerank_complete = 0;
             end
             DELTA: begin
                 nextState = END;
+                next_itr = 0;
+                pagerank_complete = 0;
             end
             END: begin
                 nextState = ((delta < threshold) || (iteration_count >= 500)) ? END : (WAIT_FOR_READY);
@@ -117,7 +124,7 @@ module pagerank_comp
         end
     end
 
-    always_ff @(posedge clock, negedge reset_n) begin      
+    always_ff @(posedge clock) begin      
         if (nextState == WAIT_FOR_READY) begin
             for (int i=0; i<NODES_IN_GRAPH; i++) begin
                 pagerank_intermediate [i] <= 0;
@@ -158,8 +165,10 @@ module counter32_bit_final
     assign count_val = counter;
 
     always_ff @(posedge clock, negedge reset_n) begin
-        if ((~reset_n) || (clear))
-            counter <=0;
+        if (~reset_n)
+            counter <= 0;
+        else if (clear)
+            counter <= 0;
         else if (~enable)
             counter <= counter;
         else 
