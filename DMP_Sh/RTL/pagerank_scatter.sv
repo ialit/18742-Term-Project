@@ -45,10 +45,10 @@ OUTPUT FORMAT:
     node_id:
         The node_id of the corresponding intermediate result of pagerank from scatter phase.
 
-    output_ready:
+    scatter_output_ready:
         Signifies to the gather stage of pagerank to queue the results for updating
 
-    operation_complete:
+    scatter_operation_complete:
         Signifies every loop has completed in the pagerank algorithm for the current iteration
 
 *******************************************************************************/
@@ -71,15 +71,16 @@ module pagerank_scatter
     input logic [31:0] source_id [NODES_IN_PARTITION],
     input logic [31:0] out_degree [NODES_IN_PARTITION],
     input logic [31:0] dest_id [NODES_IN_PARTITION][STREAM_SIZE],
-    input logic [63:0] page_rank_old [NODES_IN_GRAPH],
+    input real page_rank_old [NODES_IN_GRAPH],
+    input logic stall_scatter,
 
     //Output
-    output logic [63:0] pagerank_scatter_op,
+    output real pagerank_scatter_op,
     output logic [31:0] node_id,
-    output logic output_ready,
-    output logic operation_complete 
+    output logic scatter_output_ready,
+    output logic scatter_operation_complete 
 );
-    logic [63:0] page_rank_init [NODES_IN_GRAPH];
+    real page_rank_init [NODES_IN_GRAPH];
     logic [31:0] i,j;
     logic outer_loop_enable, inner_loop_enable;
     logic inner_loop_clear, outer_loop_clear;
@@ -95,8 +96,8 @@ module pagerank_scatter
         nextState = SCAN_LINK;
         pagerank_scatter_op = 0;
         node_id = 0;
-        output_ready = 0;
-        operation_complete = 0;
+        scatter_output_ready = 0;
+        scatter_operation_complete = 0;
         outer_loop_enable = 0;
         inner_loop_enable = 0;
         outer_loop_clear = 0;
@@ -112,11 +113,15 @@ module pagerank_scatter
               if (j >= out_degree[i])
                     nextState = INC;
                 else begin
-                    pagerank_scatter_op = page_rank_init[source_id[i]] / out_degree[source_id[i]]; //Need to figure out how to do it
-                    node_id = dest_id[i][j];
-                    output_ready = 1;
-                    inner_loop_enable = 1;
-                    nextState = QUEUE;
+                    if (stall_scatter)
+                        nextState = QUEUE;
+                    else begin
+                        pagerank_scatter_op = page_rank_init[source_id[i]] / out_degree[source_id[i]]; //Need to figure out how to do it
+                        node_id = dest_id[i][j];
+                        scatter_output_ready = 1;
+                        inner_loop_enable = 1;
+                        nextState = QUEUE;
+                    end
                 end
             end
             INC: begin
@@ -127,7 +132,7 @@ module pagerank_scatter
             END: begin
                 nextState = (nextIteration) ? START : END;
                 outer_loop_clear = 1;
-                operation_complete = 1;
+                scatter_operation_complete = 1;
             end
 
         endcase

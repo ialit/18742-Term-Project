@@ -44,7 +44,8 @@ OUTPUT FORMAT:
 *******************************************************************************/
 module pagerank_comp
     #(
-        parameter int NODES_IN_GRAPH = 32
+        parameter int NODES_IN_GRAPH = 32,
+        parameter int NUM_HW_THREADS = 8
     )
 (
     //Circuit inputs
@@ -52,16 +53,16 @@ module pagerank_comp
     input logic reset_n,
 
     //Input from DMP phase
-    input logic [63:0] pagerank_serial_stream [NODES_IN_GRAPH],
-    input logic stream_start,
-    input logic stream_done,
-    input logic [63:0] threshold,
+    input real pagerank_serial_stream [NUM_HW_THREADS],
+    input logic [31:0] dest_update[NUM_HW_THREADS],
+    input logic stream_valid[NUM_HW_THREADS],
 
     //Input related to the damping factor
-    input logic [63:0] damping_factor,
+    input real damping_factor,
+    input real threshold,
 
     //Output logic of all nodes
-    output logic [63:0] pagerank_final[NODES_IN_GRAPH],
+    output real pagerank_final[NODES_IN_GRAPH],
     output logic [31:0] iteration_number,
     output logic pagerank_complete,
     output logic nextIteration
@@ -70,8 +71,8 @@ module pagerank_comp
     typedef enum logic[2:0] {WAIT_FOR_READY, ACCUMILATE_SUM, DAMP, DELTA, END} states_t;
 
     states_t currentState, nextState;
-    logic [63:0] pagerank_intermediate[NODES_IN_GRAPH];
-    logic [63:0] delta;
+    real pagerank_intermediate[NODES_IN_GRAPH];
+    real delta;
     logic [31:0] iteration_count;
   	logic next_itr;
 
@@ -80,9 +81,9 @@ module pagerank_comp
     assign nextIteration = next_itr;
     assign iteration_number = iteration_count;
     
-    function logic[63:0] float_absolute (logic [63:0] ip_val);
-        //float_absolute = 64'd420;             //NOT sure what this was for 
-        float_absolute = ((ip_val[63] == 1) ? (-ip_val) : ip_val);
+    function real float_absolute (real ip_val);
+        float_absolute = (ip_val < 0 ) ? (-ip_val) : ip_val;
+          
     endfunction
 
     always_comb begin
@@ -125,9 +126,9 @@ module pagerank_comp
             delta <= 64'd0;
         end
         else if (nextState == ACCUMILATE_SUM) begin     
-            for (int i=0; i<NODES_IN_GRAPH; i++) begin
-                pagerank_intermediate[i] <= pagerank_intermediate[i] + pagerank_serial_stream[i];
-              //$display("KEVIN ROHAN %d",pagerank_serial_stream[i]);
+            for (int i=0; i<NUM_HW_THREADS; i++) begin
+                if (stream_valid[i])
+                    pagerank_intermediate[dest_update[i]] <= pagerank_intermediate[dest_update[i]] + pagerank_serial_stream[i];
             end
         end
         else if (nextState == DAMP) begin
