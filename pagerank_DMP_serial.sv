@@ -59,8 +59,8 @@ OUTPUT FORMAT:
 module pagerank_DMP_serial
     #(
         parameter int NUM_HW_THREADS = 8, //Should be same as number of partitions
-        parameter int NODES_IN_PARTITION = 4, 
-        parameter int NODES_IN_GRAPH = 32,
+        parameter int NODES_IN_PARTITION = 8, 
+        parameter int NODES_IN_GRAPH = 64,
         parameter int STREAM_SIZE = 20 
     )
 (
@@ -70,7 +70,7 @@ module pagerank_DMP_serial
     input logic pagerank_enable,
 
     //Graph Inputs
-    input logic [31:0] source_id [NUM_HW_THREADS][NODES_IN_PARTITION],
+    input logic [31:0] source_id [NUM_HW_THREADS][NODES_IN_PARTITION], 
     input logic [31:0] out_degree [NUM_HW_THREADS][NODES_IN_PARTITION],
     input logic [31:0] dest_id [NUM_HW_THREADS][NODES_IN_PARTITION][STREAM_SIZE],
 
@@ -84,27 +84,27 @@ module pagerank_DMP_serial
 );
 
     //General signals
-    logic [63:0] page_rank_init [NODES_IN_GRAPH];
-    logic [63:0] pagerank_final [NODES_IN_GRAPH];
-    logic [31:0] iteration_number;
-    logic nextIteration;
+    logic [63:0] page_rank_init [NODES_IN_GRAPH]/* synthesis noprune keep preserve */; 
+    logic [63:0] pagerank_final [NODES_IN_GRAPH]/* synthesis noprune keep preserve */; 
+    logic [31:0] iteration_number/* synthesis noprune keep preserve */; 
+    logic nextIteration/* synthesis noprune keep preserve */; 
 
     //Scatter phase signals
-    logic [63:0] pagerank_scatter[NUM_HW_THREADS] ;
-    logic [31:0] node_id[NUM_HW_THREADS];
-    logic output_ready[NUM_HW_THREADS];
-    logic operation_complete[NUM_HW_THREADS];
-    logic scatter_operation_complete[NUM_HW_THREADS];
+    logic [63:0] pagerank_scatter[NUM_HW_THREADS] /* synthesis noprune keep preserve */; 
+    logic [31:0] node_id[NUM_HW_THREADS]/* synthesis noprune keep preserve */; 
+    logic output_ready[NUM_HW_THREADS]/* synthesis noprune keep preserve */;  
+    logic operation_complete[NUM_HW_THREADS]/* synthesis noprune keep preserve */; 
+    logic scatter_operation_complete[NUM_HW_THREADS]/* synthesis noprune keep preserve */; 
 
     //Gather signals
-    logic [63:0] pagerank_pre_damp [NUM_HW_THREADS][NODES_IN_GRAPH];
-    logic gather_operation_complete[NUM_HW_THREADS]; 
+    logic [63:0] pagerank_pre_damp [NUM_HW_THREADS][NODES_IN_GRAPH]/* synthesis noprune keep preserve */; 
+    logic gather_operation_complete[NUM_HW_THREADS]/* synthesis noprune keep preserve */;  
 
     //DMP serial signals
-    logic [63 : 0] page_rank_gather[NUM_HW_THREADS][NODES_IN_GRAPH];
-    logic [63:0] pagerank_serial_stream [NODES_IN_GRAPH];
-    logic stream_start;
-    logic stream_done;
+    logic [63 : 0] page_rank_gather[NUM_HW_THREADS][NODES_IN_GRAPH]/* synthesis noprune keep preserve */; 
+    logic [63:0] pagerank_serial_stream [NODES_IN_GRAPH]/* synthesis noprune keep preserve */; 
+    logic stream_start/* synthesis noprune keep preserve */; 
+    logic stream_done/* synthesis noprune keep preserve */; 
 
     generate
     genvar i;
@@ -124,14 +124,14 @@ module pagerank_DMP_serial
                                              );
 
             assign page_rank_gather[i] = pagerank_pre_damp[i];
+        end
+    endgenerate
 
-            DMP_serial #(NUM_HW_THREADS, NODES_IN_GRAPH) serialization_of_threads (   .clock(clock), .reset_n(reset_n), .nextIteration(nextIteration),
+    DMP_serial #(NUM_HW_THREADS, NODES_IN_GRAPH) serialization_of_threads (   .clock(clock), .reset_n(reset_n), .nextIteration(nextIteration),
                                                     .page_rank_gather(page_rank_gather), .done(gather_operation_complete),
                                                     
                                                     .pagerank_serial_stream(pagerank_serial_stream), .stream_start(stream_start), .stream_done(stream_done)
                                                 );            
-        end
-    endgenerate
 
     pagerank_comp #(NODES_IN_GRAPH) pagerank_computation ( .clock(clock), .reset_n(reset_n),
                                                             .pagerank_serial_stream(pagerank_serial_stream), .stream_start(stream_start), .stream_done(stream_done),
