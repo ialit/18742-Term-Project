@@ -47,48 +47,34 @@ module TestBench_Sh();
 	);
 	
 	initial begin
-		#5 clock = ~clock; 
-	end
+		forever begin
+      #5 clock = ~clock; 
+    end
+  end
 	
 	initial begin
 		
 		
 		clock = 0;
 		reset_n = 0;
-		#1 reset_n = 1;
+		#1 reset_n <= 1;
 		
 		pagerank_enable <= 1;
         
-      source_id <= '{'{1,2,3,4}};
+      source_id <= '{'{0,1,2,3}};
       out_degree <= '{'{2,1,3,1}};
-      dest_id <= '{'{'{2,3,0},'{4,1,1},'{1,2,4},'{3,0,0}}};
+      dest_id <= '{'{'{1,2,0},'{3,0,0},'{0,1,3},'{2,0,0}}};
 		
       	damping_factor <= 0.85;
-		threshold <= 0.00001;
+		    threshold <= 0.00001;
       
+      $display("current state in comp = %s", obj.serialization_of_threads.currentState.name());   
       @(posedge clock);
       $display("pagerank in %d",source_id[0][1]);
       $display("pagerank init %d",obj.scatter_threads.out_degree[0]);
       $display("current state %s",obj.scatter_threads.currentState.name());
-      
       @(posedge clock);
       $display("current state %s",obj.scatter_threads.currentState.name());
-      
-      @(posedge clock);
-      $display("current state %s",obj.scatter_threads.currentState.name());
-      
-      @(posedge clock);
-      $display("current state %s",obj.scatter_threads.currentState.name());
-      
-      @(posedge clock);
-      $display("current state %s",obj.scatter_threads.currentState.name());
-      
-      @(posedge clock);
-      $display("current state %s",obj.scatter_threads.currentState.name());
-            @(posedge clock);
-      $display("current state %s",obj.scatter_threads.currentState.name());
-            @(posedge clock);
-      $display("current state %s",obj.scatter_threads.currentState.name());
-     
-    end
+      $finish;
+     end
 endmodule

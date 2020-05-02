@@ -66,7 +66,7 @@ module pagerank_DMP_serial
                                              );
         always_comb begin
             for (int i=0; i<NODES_IN_GRAPH; i++)
-                assign page_rank_gather[i] = pagerank_pre_damp[i];
+                page_rank_gather[i] = pagerank_pre_damp[i];
         end
         //end
     //endgenerate
@@ -434,7 +434,7 @@ module pagerank_comp
     end
 
     always_ff @(posedge clock) begin      
-        if (nextState == WAIT_FOR_READY) begin
+        if ((nextState == WAIT_FOR_READY) || (~reset_n)) begin
             for (int i=0; i<NODES_IN_GRAPH; i++) begin
                 pagerank_intermediate [i] <= 0;
             end
