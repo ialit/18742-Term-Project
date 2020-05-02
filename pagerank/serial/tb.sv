@@ -68,13 +68,15 @@ module TestBench_Sh();
       	damping_factor <= 0.85;
 		    threshold <= 0.00001;
       
-      $display("current state in comp = %s", obj.serialization_of_threads.currentState.name());   
-      @(posedge clock);
-      $display("pagerank in %d",source_id[0][1]);
-      $display("pagerank init %d",obj.scatter_threads.out_degree[0]);
-      $display("current state %s",obj.scatter_threads.currentState.name());
-      @(posedge clock);
-      $display("current state %s",obj.scatter_threads.currentState.name());
+      while (obj.scatter_threads.operation_complete != 1) begin
+        @(posedge clock);
+        if (obj.scatter_threads.output_ready) begin
+          $display("Values of ip1 = pagerank_old %f", obj.scatter_threads.page_rank_old[obj.scatter_threads.source_id[obj.scatter_threads.i]]);
+          $display("Values of ip2 = out degree %d", obj.scatter_threads.out_degree[obj.scatter_threads.i]);
+          $display("Values of output %f", obj.scatter_threads.pagerank_scatter_op);
+        end
+      end
+      $display("DONE");
       $finish;
      end
 endmodule

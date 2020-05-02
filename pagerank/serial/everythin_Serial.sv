@@ -32,10 +32,10 @@ module pagerank_DMP_serial
     logic nextIteration/* synthesis noprune keep preserve */; 
 
     //Scatter phase signals
-    real pagerank_scatter[NUM_HW_THREADS] /* synthesis noprune keep preserve */; 
+    real pagerank_scatter_op[NUM_HW_THREADS] /* synthesis noprune keep preserve */; 
     logic [31:0] node_id[NUM_HW_THREADS]/* synthesis noprune keep preserve */; 
     logic output_ready[NUM_HW_THREADS]/* synthesis noprune keep preserve */;  
-    logic operation_complete[NUM_HW_THREADS]/* synthesis noprune keep preserve */; 
+     
     logic scatter_operation_complete[NUM_HW_THREADS]/* synthesis noprune keep preserve */; 
 
     //Gather signals
@@ -54,12 +54,12 @@ module pagerank_DMP_serial
             pagerank_scatter #(NODES_IN_PARTITION, STREAM_SIZE, NODES_IN_GRAPH) scatter_threads (  .clock(clock), .reset_n(reset_n), .pagerank_enable(pagerank_enable), .nextIteration(nextIteration),
                                                 .source_id(source_id[0]), .out_degree(out_degree[0]), .dest_id(dest_id[0]), .page_rank_old(page_rank_init),
                                                 
-                                                .pagerank_scatter_op(pagerank_scatter[0]), .node_id(node_id[0]), .output_ready(output_ready[0]), 
-                                                .operation_complete(operation_complete[0])
+                                                .pagerank_scatter_op(pagerank_scatter_op[0]), .node_id(node_id[0]), .output_ready(output_ready[0]), 
+                                                .operation_complete(scatter_operation_complete[0])
                                              );
 
             pagerank_local_update #(NODES_IN_GRAPH) local_update_threads (  .clock(clock), .reset_n(reset_n), .pagerank_enable(pagerank_enable), .nextIteration(nextIteration),
-                                                .page_rank_scatter(pagerank_scatter[0]), .dest_id(node_id[0]), .pagerank_ready(output_ready[0]), 
+                                                .page_rank_scatter(pagerank_scatter_op[0]), .dest_id(node_id[0]), .pagerank_ready(output_ready[0]), 
                                                 .scatter_operation_complete(scatter_operation_complete[0]),
                                                 
                                                 .pagerank_pre_damp(pagerank_pre_damp[0]), .gather_operation_complete(gather_operation_complete[0])
@@ -126,7 +126,6 @@ module pagerank_scatter
     output logic output_ready,
     output logic operation_complete 
 );
-    real page_rank_init [NODES_IN_GRAPH];
     logic [31:0] i,j;
     logic outer_loop_enable, inner_loop_enable;
     logic inner_loop_clear, outer_loop_clear;
@@ -159,7 +158,7 @@ module pagerank_scatter
               if (j >= out_degree[i])
                     nextState = INC;
                 else begin
-                    pagerank_scatter_op = page_rank_init[source_id[i]] / out_degree[source_id[i]]; //Need to figure out how to do it
+                    pagerank_scatter_op = real'(page_rank_old[source_id[i]]) / (out_degree[source_id[i]]); //Need to figure out how to do it
                     node_id = dest_id[i][j];
                     output_ready = 1;
                     inner_loop_enable = 1;
@@ -184,9 +183,6 @@ module pagerank_scatter
     always_ff @(posedge clock, negedge reset_n) begin
         if (~reset_n) begin
             currentState <= START;
-            for (int k=0; k<NODES_IN_PARTITION; k=k+1) begin
-                page_rank_init[k] <= page_rank_old[k];
-            end
         end
         else if (pagerank_enable) begin
             currentState <= nextState;
