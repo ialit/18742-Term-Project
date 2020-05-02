@@ -68,11 +68,13 @@ module TestBench_Sh();
       	damping_factor <= 0.85;
 		    threshold <= 0.00001;
       
-      while (obj.local_update_threads.gather_operation_complete  != 1) begin
+      while (obj.nextIteration != 1) begin
         @(posedge clock);
       end
       
-
+      for (int i=0; i<4; i++) begin
+        $display("final page rank of node %d = %f",i,pagerank[i]);
+      end
       $display("DONE");
       $finish;
      end

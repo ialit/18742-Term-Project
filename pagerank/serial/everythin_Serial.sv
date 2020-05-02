@@ -85,7 +85,10 @@ module pagerank_DMP_serial
                                                             .nextIteration(nextIteration)
                                                         );
 
-    assign pagerank = pagerank_final;
+    always_comb begin
+        for (int i=0; i<NODES_IN_GRAPH; i++)
+            pagerank[i] = pagerank_final[i];
+    end
 
     always_comb begin
         if (iteration_number == 0) begin
@@ -273,10 +276,11 @@ module DMP_serial
 
     counter32_bit thread_counter (.clock(clock), .reset_n(reset_n), .enable(next_thread), .count_val(thread_id), .clear(nextIteration));
 
-    assign stream_start = sync;
     assign stream_done = (thread_id == NUM_HW_THREADS)? 1'b1 : 1'b0;
+    
 
     always_comb begin
+        stream_start = 0;
         for(int i=0; i<NODES_IN_GRAPH; i++)
             pagerank_serial_stream[i] = 0;
         next_thread = 0;
@@ -289,6 +293,7 @@ module DMP_serial
                     nextState = END;
                 end
                 else begin
+                    stream_start = 1;
                     for(int i=0; i<NODES_IN_GRAPH; i++) begin
                         pagerank_serial_stream[i] = page_rank_gather[thread_id][i];
                     end
@@ -439,7 +444,7 @@ module pagerank_comp
         else if (nextState == ACCUMILATE_SUM) begin     
             for (int i=0; i<NODES_IN_GRAPH; i++) begin
                 pagerank_intermediate[i] <= pagerank_intermediate[i] + pagerank_serial_stream[i];
-              //$display("KEVIN ROHAN %d",pagerank_serial_stream[i]);
+                
             end
         end
         else if (nextState == DAMP) begin
