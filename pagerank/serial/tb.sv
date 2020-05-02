@@ -6,18 +6,21 @@ module TestBench_Sh();
     logic clock;
     logic reset_n;
     logic pagerank_enable;
+	logic counter_enable;
+
+	logic [31:0] counter_val;
 
     //Graph Inputs
-  logic [31:0] source_id [7][3];
-  logic [31:0] out_degree [7][3];
-  logic [31:0] dest_id [7][3][3];
+  logic [31:0] source_id [1][4];
+  logic [31:0] out_degree [1][4];
+  logic [31:0] dest_id [1][4][3];
 
     //Pagerank Inputs
     real damping_factor;
     real threshold;
     
     //Output
-  real pagerank[20];
+  real pagerank[4];
     logic pagerank_complete;
 	
 	//DMP signals
@@ -28,7 +31,7 @@ module TestBench_Sh();
 	const int NODES_IN_GRAPH = 20;
 	const int STREAM_SIZE = 3;
 	
-  pagerank_DMP_serial #(7, 3, 20, 3)
+  pagerank_DMP_serial #(1, 4, 4, 3)
   	obj
 	(.clock(clock), .reset_n(reset_n), 
      .pagerank_enable(pagerank_enable),
@@ -51,21 +54,41 @@ module TestBench_Sh();
 		
 		
 		clock = 0;
-		reset_n = 1;
-		#1 reset_n = 0;
+		reset_n = 0;
 		#1 reset_n = 1;
 		
 		pagerank_enable <= 1;
-      source_id = '{'{0,1,2},'{3,4,5},'{6,8,10},'{7,9,11},'{12,13,14},'{15,16,17},'{18,19,20}};
-      out_degree = '{'{3,2,2},'{2,1,2},'{2,2,1},'{2,2,1},'{1,1,1},'{2,1,1},'{1,0,0}};
-      dest_id = '{'{'{1,4,5},'{2,6,0},'{3,7,0}},'{'{9,0,0},'{10,11,0},'{10,14,0}},'{'{10,14,0},'{12,13,0},'{15,0,0}},
-                   '{'{13,14,0},'{11,12,0},'{16,0,0}},'{'{17,0,0},'{18,0,0},'{19,0,0}},'{'{16,19,0},'{17,0,0},'{18,0,0}},'{'{19,0,0},'{0,0,0},'{0,0,0}}};
-
+        
+      source_id <= '{'{1,2,3,4}};
+      out_degree <= '{'{2,1,3,1}};
+      dest_id <= '{'{'{2,3,0},'{4,1,1},'{1,2,4},'{3,0,0}}};
 		
-		damping_factor = 0.15;
-		threshold = 0.001;
-		
-		wait (pagerank_complete === 1);
-		
-	end
+      	damping_factor <= 0.85;
+		threshold <= 0.00001;
+      
+      @(posedge clock);
+      $display("pagerank in %d",source_id[0][1]);
+      $display("pagerank init %d",obj.scatter_threads.out_degree[0]);
+      $display("current state %s",obj.scatter_threads.currentState.name());
+      
+      @(posedge clock);
+      $display("current state %s",obj.scatter_threads.currentState.name());
+      
+      @(posedge clock);
+      $display("current state %s",obj.scatter_threads.currentState.name());
+      
+      @(posedge clock);
+      $display("current state %s",obj.scatter_threads.currentState.name());
+      
+      @(posedge clock);
+      $display("current state %s",obj.scatter_threads.currentState.name());
+      
+      @(posedge clock);
+      $display("current state %s",obj.scatter_threads.currentState.name());
+            @(posedge clock);
+      $display("current state %s",obj.scatter_threads.currentState.name());
+            @(posedge clock);
+      $display("current state %s",obj.scatter_threads.currentState.name());
+     
+    end
 endmodule
