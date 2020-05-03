@@ -19,6 +19,7 @@ module TestBench_Sh();
     real damping_factor;
     real threshold;
     
+    int clock;
     //Output
   real pagerank[4];
     logic pagerank_complete;
@@ -53,7 +54,7 @@ module TestBench_Sh();
   end
 	
 	initial begin
-		
+        clock = 0;		
 		
 		clock = 0;
 		reset_n = 0;
@@ -66,15 +67,19 @@ module TestBench_Sh();
       dest_id <= '{'{'{1,2,0},'{3,0,0},'{0,1,3},'{2,0,0}}};
 		
       	damping_factor <= 0.85;
-		    threshold <= 0.00001;
+	threshold <= 0.01;
       
-      while (obj.nextIteration != 1) begin
+      while (pagerank_complete != 1) begin
         @(posedge clock);
+        clock=clock+1;
       end
       
       for (int i=0; i<4; i++) begin
         $display("final page rank of node %d = %f",i,pagerank[i]);
       end
+      $display("Delta %f",obj.pagerank_computation.delta);
+      $display("Iterations elapsed %f",obj.pagerank_computation.iteration_number + 1);
+      $display("Clock cycles %d",clock);
       $display("DONE");
       $finish;
      end
